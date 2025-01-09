@@ -3,6 +3,8 @@ let currentRoom = null;
 let players = new Map();
 let gameMode = null;
 let teamScores = { red: 0, blue: 0 };
+let gameModeMenu;
+let gameStarted = false;
 
 const GAME_MODES = {
     CLASSIC: 'classic',
@@ -17,13 +19,15 @@ function initializeMultiplayer() {
         reconnection: true
     });
     
+    gameModeMenu = new GameModeMenu();
+    
     setupSocketListeners();
 }
 
 function setupSocketListeners() {
     socket.on('connect', () => {
         console.log('Connected to server with ID:', socket.id);
-        showModeSelection();
+        gameModeMenu.show();
     });
     
     socket.on('room-joined', (data) => {
@@ -37,6 +41,7 @@ function setupSocketListeners() {
                 team: data.teams?.[id]
             });
         });
+        gameStarted = true;
         setupGameMode(gameMode);
     });
     
@@ -108,8 +113,6 @@ function createModeButtons() {
 
 function joinRoom(mode) {
     socket.emit('join-room', mode);
-    // Hide mode selection
-    select('div').hide();
 }
 
 function setupGameMode(mode) {

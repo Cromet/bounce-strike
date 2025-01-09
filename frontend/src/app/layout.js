@@ -13,6 +13,7 @@ export default function RootLayout({ children }) {
         {children}
         <Script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" />
         <Script src="https://cdn.socket.io/4.7.2/socket.io.min.js" />
+        <Script src="/ui.js" />
         <Script src="/helpers.js" />
         <Script src="/objects.js" />
         <Script src="/sketch.js" />

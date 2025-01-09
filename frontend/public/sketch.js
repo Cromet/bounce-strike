@@ -4,52 +4,28 @@ let score = 0;
 let canDrop = true;
 let gameStarted = false;
 let gameMode;
-const GAME_MODES = {
-    CLASSIC: 'classic',
-    TEAM: 'team',
-    BATTLE: 'battle',
-    COOP: 'coop'
-};
+let gameModeMenu;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     ball = new Ball(mouseX, mouseY);
     target = new Target();
     initializeMultiplayer();
+    
+    // Initialize game mode menu
+    gameModeMenu = new GameModeMenu();
 }
 
 function draw() {
     background(20);
     
     if (!gameStarted) {
-        // Show waiting screen if needed
-        showWaitingScreen();
+        // Draw the mode selection menu
+        gameModeMenu.draw();
         return;
     }
     
-    // Mode-specific updates
-    switch (gameMode) {
-        case GAME_MODES.TEAM:
-            updateTeamMode();
-            break;
-        case GAME_MODES.BATTLE:
-            updateBattleMode();
-            break;
-        case GAME_MODES.COOP:
-            updateCoopMode();
-            break;
-        default:
-            updateClassicMode();
-    }
-    
-    // Common updates
-    updateBall();
-    drawOpponentBalls();
-    displayGameInfo();
-}
-
-function updateBall() {
-    // Handle keyboard input
+    // Game is active, run normal game loop
     if (keyIsDown(LEFT_ARROW)) {
         ball.move(-1);
     }
@@ -63,17 +39,56 @@ function updateBall() {
         ball.y = mouseY;
     }
     
-    ball.update();
-    
-    // Send ball position to other players
-    if (ball.active) {
-        sendBallUpdate(ball);
+    // Mode-specific updates
+    switch (gameMode) {
+        case 'team':
+            updateTeamMode();
+            break;
+        case 'battle':
+            updateBattleMode();
+            break;
+        case 'coop':
+            updateCoopMode();
+            break;
+        default:
+            updateClassicMode();
     }
     
-    // Reset ball if too low
-    if (ball.y > height + 100) {
-        ball.active = false;
-        canDrop = true;
+    // Common updates
+    ball.update();
+    sendBallUpdate(ball);
+    drawOpponentBalls();
+    displayGameInfo();
+}
+
+function mousePressed() {
+    if (!gameStarted) {
+        gameModeMenu.handleClick();
+        return;
+    }
+    
+    if (canDrop) {
+        ball.active = true;
+        canDrop = false;
+        ball.vy = map(mouseY, height, 0, 1, 20);
+    }
+}
+
+function mouseMoved() {
+    if (!gameStarted) {
+        gameModeMenu.handleHover();
+    }
+}
+
+function keyPressed() {
+    // Press ESC to return to mode selection
+    if (keyCode === ESCAPE && gameStarted) {
+        gameStarted = false;
+        gameModeMenu.show();
+        // Disconnect from current room
+        if (socket) {
+            socket.emit('leave-room');
+        }
     }
 }
 
@@ -159,45 +174,4 @@ function handleCoopScoring() {
     target.speed *= 1.1;
     ball.active = false;
     canDrop = true;
-}
-
-function showWaitingScreen() {
-    push();
-    textSize(32);
-    textAlign(CENTER, CENTER);
-    fill(255);
-    text('Waiting for players...', width/2, height/2);
-    text('Select a game mode to begin', width/2, height/2 + 40);
-    pop();
-}
-
-function mousePressed() {
-    if (canDrop) {
-        ball.active = true;
-        canDrop = false;
-        // Initial velocity based on height
-        ball.vy = map(mouseY, height, 0, 1, 20);
-    }
-}
-
-function keyPressed() {
-    // Game mode selection
-    switch(key) {
-        case '1':
-            gameMode = GAME_MODES.CLASSIC;
-            gameStarted = true;
-            break;
-        case '2':
-            gameMode = GAME_MODES.TEAM;
-            gameStarted = true;
-            break;
-        case '3':
-            gameMode = GAME_MODES.BATTLE;
-            gameStarted = true;
-            break;
-        case '4':
-            gameMode = GAME_MODES.COOP;
-            gameStarted = true;
-            break;
-    }
 }
