@@ -1,29 +1,58 @@
-// Any objects types go here
-
 class Ball {
-  constructor(x, y, size = 30) {
+  constructor(x, y, size = 20) {
     this.x = x;
     this.y = y;
     this.size = size;
-    this.vx = 3;
-    this.vy = 2;
+    this.vy = 0;  // Vertical velocity
+    this.gravity = 0.6;  // Gravity effect
+    this.bounce = -0.7;  // Bounce factor
+    this.active = false; // Is ball in play?
   }
 
   update() {
-    // Update position
-    this.x += this.vx;
+    if (!this.active) return;
+    
+    // Apply gravity
+    this.vy += this.gravity;
     this.y += this.vy;
 
-    // Bounce off walls
-    if (this.x + this.size / 2 > width || this.x - this.size / 2 < 0)
-      this.vx *= -1;
-    if (this.y + this.size / 2 > height || this.y - this.size / 2 < 0)
-      this.vy *= -1;
+    // Ground collision with bounce
+    if (this.y + this.size/2 > height) {
+      this.y = height - this.size/2;
+      this.vy *= this.bounce;
+    }
   }
 
   draw() {
     fill(255);
     noStroke();
     circle(this.x, this.y, this.size);
+  }
+}
+
+class Target {
+  constructor() {
+    this.width = 60;
+    this.height = 10;
+    this.y = height - this.height;
+    this.x = width/2;
+    this.speed = 4;
+    this.direction = 1;
+  }
+
+  update() {
+    // Move back and forth
+    this.x += this.speed * this.direction;
+    
+    // Reverse at edges
+    if (this.x + this.width/2 > width || this.x - this.width/2 < 0) {
+      this.direction *= -1;
+    }
+  }
+
+  draw() {
+    fill(255, 0, 0);
+    rectMode(CENTER);
+    rect(this.x, this.y, this.width, this.height);
   }
 }
