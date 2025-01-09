@@ -1,15 +1,43 @@
 let socket;
+let currentRoom = null;
 let players = new Map();
+let gameMode = null;
+let teamScores = { red: 0, blue: 0 };
+
+const GAME_MODES = {
+    CLASSIC: 'classic',
+    TEAM: 'team',
+    BATTLE: 'battle',
+    COOP: 'coop'
+};
 
 function initializeMultiplayer() {
-    // Connect to the server running on port 3001
     socket = io('http://localhost:3001', {
         transports: ['websocket'],
         reconnection: true
     });
     
+    setupSocketListeners();
+}
+
+function setupSocketListeners() {
     socket.on('connect', () => {
         console.log('Connected to server with ID:', socket.id);
+        showModeSelection();
+    });
+    
+    socket.on('room-joined', (data) => {
+        currentRoom = data.roomId;
+        gameMode = data.mode;
+        players.clear();
+        data.players.forEach(id => {
+            players.set(id, {
+                ball: null,
+                score: data.scores[id],
+                team: data.teams?.[id]
+            });
+        });
+        setupGameMode(gameMode);
     });
     
     socket.on('playerJoined', (playerId) => {
@@ -48,6 +76,58 @@ function initializeMultiplayer() {
     });
 }
 
+function showModeSelection() {
+    const modeButtons = createModeButtons();
+    modeButtons.style('position', 'absolute');
+    modeButtons.style('top', '50%');
+    modeButtons.style('left', '50%');
+    modeButtons.style('transform', 'translate(-50%, -50%)');
+}
+
+function createModeButtons() {
+    const container = createDiv();
+    
+    const classicBtn = createButton('Classic Mode')
+        .parent(container)
+        .mousePressed(() => joinRoom(GAME_MODES.CLASSIC));
+    
+    const teamBtn = createButton('Team Mode')
+        .parent(container)
+        .mousePressed(() => joinRoom(GAME_MODES.TEAM));
+    
+    const battleBtn = createButton('Battle Mode')
+        .parent(container)
+        .mousePressed(() => joinRoom(GAME_MODES.BATTLE));
+    
+    const coopBtn = createButton('Co-op Mode')
+        .parent(container)
+        .mousePressed(() => joinRoom(GAME_MODES.COOP));
+    
+    return container;
+}
+
+function joinRoom(mode) {
+    socket.emit('join-room', mode);
+    // Hide mode selection
+    select('div').hide();
+}
+
+function setupGameMode(mode) {
+    switch (mode) {
+        case GAME_MODES.TEAM:
+            setupTeamMode();
+            break;
+        case GAME_MODES.BATTLE:
+            setupBattleMode();
+            break;
+        case GAME_MODES.COOP:
+            setupCoopMode();
+            break;
+        default:
+            setupClassicMode();
+    }
+}
+
 function sendBallUpdate(ball) {
     if (socket && socket.connected) {
         socket.emit('ball-update', {
@@ -66,19 +146,35 @@ function sendScoreUpdate(score) {
     }
 }
 
-function displayGameStats() {
+function displayGameInfo() {
     push();
-    fill(255);
-    textSize(20);
+    textSize(24);
     textAlign(LEFT, TOP);
-    text(`Your Score: ${score}`, 20, 20);
+    fill(255);
     
-    let yPos = 50;
-    text('Active Players:', 20, yPos);
+    // Display mode-specific info
+    switch (gameMode) {
+        case GAME_MODES.TEAM:
+            text(`Team Scores - Red: ${teamScores.red} Blue: ${teamScores.blue}`, 20, 20);
+            break;
+        case GAME_MODES.BATTLE:
+            text(`Battle Mode - Power-ups Available!`, 20, 20);
+            break;
+        case GAME_MODES.COOP:
+            text(`Co-op Mode - Combined Score: ${getTotalScore()}`, 20, 20);
+            break;
+        default:
+            text(`Classic Mode - Score: ${score}`, 20, 20);
+    }
     
+    // Display players
+    let yPos = 60;
     players.forEach((player, id) => {
-        yPos += 25;
-        text(`Player ${id.slice(0, 4)}: ${player.score}`, 20, yPos);
+        const isCurrentPlayer = id === socket.id;
+        const teamColor = player.team ? color(player.team) : color(255);
+        fill(teamColor);
+        text(`${isCurrentPlayer ? 'You' : 'Player ' + id.slice(0,4)}: ${player.score}`, 20, yPos);
+        yPos += 30;
     });
     pop();
 }
@@ -211,4 +307,13 @@ function displayPowerUpGuide() {
     y -= 20;
     text('↑ Low Gravity', width - 20, y);
     pop();
+}
+
+// Placeholder functions for mode-specific setups
+function setupTeamMode() {}
+function setupBattleMode() {}
+function setupCoopMode() {}
+function setupClassicMode() {}
+function getTotalScore() {
+    return Array.from(players.values()).reduce((total, player) => total + player.score, 0);
 }

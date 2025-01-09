@@ -2,20 +2,53 @@ let ball;
 let target;
 let score = 0;
 let canDrop = true;
-let difficulty = 0;
+let gameStarted = false;
+let gameMode;
+const GAME_MODES = {
+    CLASSIC: 'classic',
+    TEAM: 'team',
+    BATTLE: 'battle',
+    COOP: 'coop'
+};
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     ball = new Ball(mouseX, mouseY);
-    target = new Target(difficulty);
-    
-    // Initialize multiplayer connection
+    target = new Target();
     initializeMultiplayer();
 }
 
 function draw() {
     background(20);
     
+    if (!gameStarted) {
+        // Show waiting screen if needed
+        showWaitingScreen();
+        return;
+    }
+    
+    // Mode-specific updates
+    switch (gameMode) {
+        case GAME_MODES.TEAM:
+            updateTeamMode();
+            break;
+        case GAME_MODES.BATTLE:
+            updateBattleMode();
+            break;
+        case GAME_MODES.COOP:
+            updateCoopMode();
+            break;
+        default:
+            updateClassicMode();
+    }
+    
+    // Common updates
+    updateBall();
+    drawOpponentBalls();
+    displayGameInfo();
+}
+
+function updateBall() {
     // Handle keyboard input
     if (keyIsDown(LEFT_ARROW)) {
         ball.move(-1);
@@ -30,21 +63,11 @@ function draw() {
         ball.y = mouseY;
     }
     
-    // Update game objects
     ball.update();
-    target.update();
     
     // Send ball position to other players
     if (ball.active) {
         sendBallUpdate(ball);
-    }
-    
-    // Check for collision with target
-    if (ball.active && checkCollision(ball, target)) {
-        score++;
-        sendScoreUpdate(score);
-        ball.active = false;
-        canDrop = true;
     }
     
     // Reset ball if too low
@@ -52,14 +75,100 @@ function draw() {
         ball.active = false;
         canDrop = true;
     }
-    
-    // Draw everything
+}
+
+function updateClassicMode() {
+    target.update();
     target.draw();
-    ball.draw();
-    drawOpponentBalls();
-    displayGameStats();
-    displayDifficulty(difficulty);
-    displayControls();
+    
+    if (ball.active && checkCollision(ball, target)) {
+        handleScoring();
+    }
+}
+
+function updateTeamMode() {
+    target.update();
+    target.draw();
+    
+    // Draw team-colored balls
+    const playerTeam = players.get(socket.id)?.team;
+    if (playerTeam) {
+        push();
+        fill(playerTeam);
+        ball.draw();
+        pop();
+    }
+    
+    if (ball.active && checkCollision(ball, target)) {
+        handleTeamScoring();
+    }
+}
+
+function updateBattleMode() {
+    target.update();
+    target.draw();
+    
+    // Update and draw power-ups
+    updatePowerUps();
+    
+    if (ball.active && checkCollision(ball, target)) {
+        handleBattleScoring();
+    }
+}
+
+function updateCoopMode() {
+    // Shared target between players
+    if (isHost()) {
+        target.update();
+        socket.emit('target-moved', { x: target.x, y: target.y });
+    }
+    target.draw();
+    
+    if (ball.active && checkCollision(ball, target)) {
+        handleCoopScoring();
+    }
+}
+
+function handleScoring() {
+    score++;
+    sendScoreUpdate(score);
+    ball.active = false;
+    canDrop = true;
+}
+
+function handleTeamScoring() {
+    score++;
+    sendScoreUpdate(score);
+    ball.active = false;
+    canDrop = true;
+}
+
+function handleBattleScoring() {
+    score++;
+    sendScoreUpdate(score);
+    // Generate power-up for scoring player
+    spawnPowerUp(ball.x, ball.y);
+    ball.active = false;
+    canDrop = true;
+}
+
+function handleCoopScoring() {
+    score++;
+    sendScoreUpdate(score);
+    // Make target harder to hit in co-op mode
+    target.speed *= 1.1;
+    ball.active = false;
+    canDrop = true;
+}
+
+function showWaitingScreen() {
+    push();
+    textSize(32);
+    textAlign(CENTER, CENTER);
+    fill(255);
+    text('Waiting for players...', width/2, height/2);
+    text('Select a game mode to begin', width/2, height/2 + 40);
+    pop();
 }
 
 function mousePressed() {
@@ -72,9 +181,23 @@ function mousePressed() {
 }
 
 function keyPressed() {
-    // Difficulty controls
-    if (key >= '1' && key <= '3') {
-        difficulty = int(key) - 1;
-        target.setDifficulty(difficulty);
+    // Game mode selection
+    switch(key) {
+        case '1':
+            gameMode = GAME_MODES.CLASSIC;
+            gameStarted = true;
+            break;
+        case '2':
+            gameMode = GAME_MODES.TEAM;
+            gameStarted = true;
+            break;
+        case '3':
+            gameMode = GAME_MODES.BATTLE;
+            gameStarted = true;
+            break;
+        case '4':
+            gameMode = GAME_MODES.COOP;
+            gameStarted = true;
+            break;
     }
 }
