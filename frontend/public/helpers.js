@@ -14,8 +14,8 @@ const GAME_MODES = {
 };
 
 function initializeMultiplayer() {
-    // Connect to the same origin as the page
-    socket = io('/', {
+    // Connect to the Socket.IO server on port 3001
+    socket = io('http://localhost:3001', {
         transports: ['websocket'],
         reconnection: true
     });
