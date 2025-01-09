@@ -1,38 +1,22 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
+const { Server } = require('socket.io');
+const io = new Server(http, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
     }
 });
+const path = require('path');
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'frontend/public')));
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Store active players and leaderboard
 const players = new Map();
 let leaderboard = [];
-
-// Helper function to update leaderboard
-function updateLeaderboard(playerId, score) {
-    const existingEntry = leaderboard.find(entry => entry.id === playerId);
-    
-    if (existingEntry) {
-        existingEntry.score = Math.max(existingEntry.score, score);
-    } else {
-        leaderboard.push({
-            id: playerId,
-            score: score,
-            timestamp: Date.now()
-        });
-    }
-    
-    // Sort by score (descending) and keep top 10
-    leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 10);
-    
-    // Broadcast updated leaderboard
-    io.emit('leaderboard-update', leaderboard);
-}
 
 io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
@@ -45,20 +29,12 @@ io.on('connection', (socket) => {
         name: `Player ${socket.id.slice(0, 4)}`
     });
     
-    // Broadcast player list
-    io.emit('players-update', Array.from(players.values()));
+    // Broadcast new player to others
+    socket.broadcast.emit('playerJoined', socket.id);
     
-    // Send current leaderboard to new player
-    socket.emit('leaderboard-update', leaderboard);
-    
-    // Handle name updates
-    socket.on('name-update', (name) => {
-        const player = players.get(socket.id);
-        if (player) {
-            player.name = name;
-            io.emit('players-update', Array.from(players.values()));
-        }
-    });
+    // Send existing players to new player
+    const existingPlayers = Array.from(players.keys()).filter(id => id !== socket.id);
+    socket.emit('existingPlayers', existingPlayers);
     
     // Handle ball updates
     socket.on('ball-update', (ballData) => {
@@ -72,13 +48,15 @@ io.on('connection', (socket) => {
         }
     });
     
-    // Handle score updates with leaderboard
+    // Handle score updates
     socket.on('score-update', (score) => {
         const player = players.get(socket.id);
         if (player) {
             player.score = score;
-            updateLeaderboard(socket.id, score);
-            io.emit('players-update', Array.from(players.values()));
+            socket.broadcast.emit('score-update', {
+                id: socket.id,
+                score: score
+            });
         }
     });
     
@@ -86,11 +64,10 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         players.delete(socket.id);
         io.emit('player-disconnected', socket.id);
-        io.emit('players-update', Array.from(players.values()));
     });
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 http.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
