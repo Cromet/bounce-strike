@@ -6,17 +6,34 @@ export default function Home() {
   useEffect(() => {
     // Only run p5 initialization on the client side
     if (typeof window !== 'undefined') {
-      new window.p5();
+      // Wait for p5 to be loaded
+      const checkP5Ready = setInterval(() => {
+        if (window.p5) {
+          clearInterval(checkP5Ready);
+          // Initialize p5 with our sketch
+          new window.p5((p) => {
+            // Move all p5 functions to use p. prefix
+            p.setup = () => {
+              p.createCanvas(p.windowWidth, p.windowHeight);
+            };
+
+            p.draw = () => {
+              // Initial background to show p5 is working
+              p.background(20);
+            };
+
+            p.windowResized = () => {
+              p.resizeCanvas(p.windowWidth, p.windowHeight);
+            };
+          });
+        }
+      }, 100);
     }
+  }, []);
 
-    // Cleanup function
-    return () => {
-      if (typeof window !== 'undefined' && window.p5) {
-        // Remove the canvas when component unmounts
-        document.querySelector('canvas')?.remove();
-      }
-    };
-  }, []); // Empty dependency array means this runs once on mount
-
-  return <main>{/* p5.js will create and inject the canvas here */}</main>;
+  return (
+    <main>
+      <div id="p5-container"></div>
+    </main>
+  );
 }
