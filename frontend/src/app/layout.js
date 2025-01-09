@@ -1,16 +1,5 @@
-import { Geist, Geist_Mono } from 'next/font/google';
-import './globals.css';
-import Script from 'next/script';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+import './globals.css'
+import Script from 'next/script'
 
 export const metadata = {
   title: 'p5.js App',
@@ -21,27 +10,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <Script
-          src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/addons/p5.sound.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          src="https://cdn.jsdelivr.net/npm/p5.collide2d"
-          strategy="beforeInteractive"
-        />
-        <Script src="/helpers.js" strategy="beforeInteractive" />
-        <Script src="/objects.js" strategy="beforeInteractive" />
-        <Script src="/sketch.js" strategy="beforeInteractive" />
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/p5.min.js" />
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.2/addons/p5.sound.min.js" />
+        <Script src="https://cdn.socket.io/4.5.4/socket.io.min.js" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
-  );
+  )
 }

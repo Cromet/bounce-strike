@@ -2,12 +2,13 @@ let ball;
 let target;
 let score = 0;
 let canDrop = true;
-let difficulty = 0; // 0: Easy, 1: Medium, 2: Hard
+let difficulty = 0;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
     ball = new Ball(mouseX, mouseY);
     target = new Target(difficulty);
+    initializeMultiplayer();
 }
 
 function windowResized() {
@@ -36,9 +37,13 @@ function draw() {
     ball.update();
     target.update();
     
+    // Send ball position to server
+    sendBallUpdate(ball);
+    
     // Check for collision with target
     if (ball.active && checkCollision(ball, target)) {
         score++;
+        sendScoreUpdate(score);
         ball.active = false;
         canDrop = true;
     }
@@ -52,9 +57,11 @@ function draw() {
     // Draw everything
     target.draw();
     ball.draw();
+    drawOpponentBalls();
     displayScore(score);
     displayDifficulty(difficulty);
     displayControls();
+    displayScoreboard();
 }
 
 function mousePressed() {
