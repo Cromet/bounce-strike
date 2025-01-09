@@ -46,6 +46,9 @@ let opponents = new Map();
 let leaderboard = [];
 let playerName = '';
 
+let powerUps = [];
+let multiBalls = [];
+
 function initializeMultiplayer() {
     socket = io('http://localhost:3001');
     
@@ -193,5 +196,80 @@ function displayGameStats() {
         yPos += 25;
         text(`${opponent.name}: ${opponent.score}`, 20, yPos);
     });
+    pop();
+}
+
+function spawnPowerUp() {
+    // 5% chance to spawn power-up when no others exist
+    if (powerUps.length === 0 && random() < 0.05) {
+        const x = random(50, width - 50);
+        const y = random(100, height - 100);
+        powerUps.push(new PowerUp(x, y));
+    }
+}
+
+function updatePowerUps(mainBall) {
+    // Check collisions
+    powerUps = powerUps.filter(powerUp => {
+        if (powerUp.checkCollision(mainBall)) {
+            activatePowerUp(powerUp, mainBall);
+            return false;
+        }
+        return true;
+    });
+    
+    // Draw remaining power-ups
+    powerUps.forEach(powerUp => powerUp.draw());
+}
+
+function activatePowerUp(powerUp, ball) {
+    // Visual feedback
+    push();
+    textSize(24);
+    textAlign(CENTER);
+    fill(255);
+    text(`${powerUp.type.toUpperCase()}!`, ball.x, ball.y - 30);
+    pop();
+    
+    // Sound feedback (if you want to add sounds later)
+    
+    if (powerUp.type === 'multiball') {
+        // Create two clone balls
+        for (let i = 0; i < 2; i++) {
+            const clone = new Ball(ball.x, ball.y, ball.size, true);
+            clone.active = true;
+            clone.vy = ball.vy;
+            clone.vx = ball.vx + random(-2, 2);
+            multiBalls.push(clone);
+        }
+    } else {
+        ball.activatePowerUp(powerUp.type);
+    }
+}
+
+function updateMultiBalls() {
+    // Update and draw clone balls
+    multiBalls = multiBalls.filter(ball => {
+        ball.update();
+        ball.draw();
+        return ball.y < height + 100;
+    });
+}
+
+function displayPowerUpGuide() {
+    push();
+    textSize(16);
+    textAlign(RIGHT, BOTTOM);
+    fill(255);
+    let y = height - 20;
+    text('Power-ups:', width - 20, y);
+    y -= 20;
+    text('⚡ Speed Boost', width - 20, y);
+    y -= 20;
+    text('⭐ Size Up', width - 20, y);
+    y -= 20;
+    text('×2 Multi Ball', width - 20, y);
+    y -= 20;
+    text('↑ Low Gravity', width - 20, y);
     pop();
 }

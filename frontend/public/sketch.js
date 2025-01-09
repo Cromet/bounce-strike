@@ -3,6 +3,8 @@ let target;
 let score = 0;
 let canDrop = true;
 let difficulty = 0;
+let multiBalls = [];
+let powerUps = [];
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -11,20 +13,17 @@ function setup() {
     initializeMultiplayer();
 }
 
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
-    target.y = height - target.height;
-}
-
 function draw() {
     background(20);
     
-    // Handle keyboard input for ball movement
+    // Handle keyboard input
     if (keyIsDown(LEFT_ARROW)) {
         ball.move(-1);
+        multiBalls.forEach(clone => clone.move(-1));
     }
     if (keyIsDown(RIGHT_ARROW)) {
         ball.move(1);
+        multiBalls.forEach(clone => clone.move(1));
     }
     
     // Update ball position if not active
@@ -33,50 +32,52 @@ function draw() {
         ball.y = mouseY;
     }
     
+    // Spawn and update power-ups
+    spawnPowerUp();
+    updatePowerUps(ball);
+    
     // Update game objects
     ball.update();
     target.update();
+    updateMultiBalls();
     
-    // Send ball position to server
-    sendBallUpdate(ball);
-    
-    // Update score handling
-    updateScore();
-    
-    // Reset ball if it's too low
-    if (ball.y > height + 100) {
-        ball.active = false;
-        canDrop = true;
-    }
-    
-    // Draw game elements
-    target.draw();
-    ball.draw();
-    drawOpponentBalls();
-    
-    // Draw UI elements
-    displayGameStats();
-    displayDifficulty(difficulty);
-    displayControls();
-    drawLeaderboard();
-}
-
-// Update score handling
-function updateScore() {
+    // Check for collisions with target
     if (ball.active && checkCollision(ball, target)) {
         score++;
         sendScoreUpdate(score);
         ball.active = false;
         canDrop = true;
-        
-        // Add visual feedback for scoring
-        push();
-        fill(255, 255, 0);
-        textSize(32);
-        textAlign(CENTER, CENTER);
-        text('+1', ball.x, ball.y - 30);
-        pop();
     }
+    
+    // Check multiball collisions
+    multiBalls.forEach(clone => {
+        if (checkCollision(clone, target)) {
+            score++;
+            sendScoreUpdate(score);
+            clone.vy = -15; // Bounce up for visual feedback
+        }
+    });
+    
+    // Reset ball if too low
+    if (ball.y > height + 100) {
+        ball.active = false;
+        canDrop = true;
+    }
+    
+    // Draw everything
+    target.draw();
+    ball.draw();
+    drawOpponentBalls();
+    displayGameStats();
+    displayDifficulty(difficulty);
+    displayControls();
+    displayPowerUpGuide();
+    drawLeaderboard();
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+    target.y = height - target.height;
 }
 
 function mousePressed() {
@@ -93,4 +94,20 @@ function keyPressed() {
         difficulty = int(key) - 1;
         target.setDifficulty(difficulty);
     }
+}
+
+function spawnPowerUp() {
+    // Implement power-up spawning logic
+}
+
+function updatePowerUps(mainBall) {
+    // Implement power-up update and interaction logic
+}
+
+function updateMultiBalls() {
+    // Implement multiball update logic
+}
+
+function displayPowerUpGuide() {
+    // Implement power-up guide display
 }
