@@ -40,13 +40,8 @@ function draw() {
     // Send ball position to server
     sendBallUpdate(ball);
     
-    // Check for collision with target
-    if (ball.active && checkCollision(ball, target)) {
-        score++;
-        sendScoreUpdate(score);
-        ball.active = false;
-        canDrop = true;
-    }
+    // Update score handling
+    updateScore();
     
     // Reset ball if it's too low
     if (ball.y > height + 100) {
@@ -54,14 +49,34 @@ function draw() {
         canDrop = true;
     }
     
-    // Draw everything
+    // Draw game elements
     target.draw();
     ball.draw();
     drawOpponentBalls();
-    displayScore(score);
+    
+    // Draw UI elements
+    displayGameStats();
     displayDifficulty(difficulty);
     displayControls();
-    displayScoreboard();
+    drawLeaderboard();
+}
+
+// Update score handling
+function updateScore() {
+    if (ball.active && checkCollision(ball, target)) {
+        score++;
+        sendScoreUpdate(score);
+        ball.active = false;
+        canDrop = true;
+        
+        // Add visual feedback for scoring
+        push();
+        fill(255, 255, 0);
+        textSize(32);
+        textAlign(CENTER, CENTER);
+        text('+1', ball.x, ball.y - 30);
+        pop();
+    }
 }
 
 function mousePressed() {
