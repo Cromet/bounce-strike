@@ -5,28 +5,28 @@ class GameModeMenu {
                 id: 'classic',
                 name: 'Classic Mode',
                 description: 'Classic bounce gameplay. Score points by hitting the target!',
-                color: '#4CAF50', // Green
+                color: '#4CAF50',
                 icon: '🎯'
             },
             {
                 id: 'team',
                 name: 'Team Battle',
                 description: 'Join red or blue team. Work together to outscore the opposition!',
-                color: '#2196F3', // Blue
+                color: '#2196F3',
                 icon: '⚔️'
             },
             {
                 id: 'battle',
                 name: 'Power-up Battle',
                 description: 'Collect power-ups and sabotage other players!',
-                color: '#FF9800', // Orange
+                color: '#FF9800',
                 icon: '⚡'
             },
             {
                 id: 'coop',
                 name: 'Co-op Challenge',
                 description: 'Work together to achieve the highest combined score!',
-                color: '#E91E63', // Pink
+                color: '#E91E63',
                 icon: '🤝'
             }
         ];
